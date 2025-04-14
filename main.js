@@ -28,11 +28,11 @@ ipcMain.handle('get-arls', async () => {
 ipcMain.handle('download-qobuz', async (event, { url }) => {
   try {
     const arls = JSON.parse(fs.readFileSync('arls.json', 'utf8'));
-    const qobuz = lucida('qobuz');
     let lastError;
 
     for (const [name, arl] of Object.entries(arls)) {
       try {
+        const qobuz = new lucida.Provider('qobuz');
         await qobuz.login(arl);
         const result = await qobuz.download(url);
         return { success: true, account: name, path: result };
