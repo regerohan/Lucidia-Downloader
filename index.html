@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Qobuz Downloader</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f6f8fa;
+      padding: 30px;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #status {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #eee;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Qobuz Downloader</h2>
+  <input type="text" id="url" placeholder="Qobuz track/album URL">
+  <button onclick="download()">Download</button>
+  <div id="status">Idle</div>
+
+  <script>
+    async function download() {
+      const url = document.getElementById('url').value;
+      const status = document.getElementById('status');
+      status.innerText = '🔄 Trying ARLs...';
+
+      const result = await window.electronAPI.downloadQobuz({ url });
+
+      if (result.success) {
+        status.innerHTML = `✅ Downloaded using <b>${result.account}</b><br>Saved to: ${result.path}`;
+      } else {
+        status.innerHTML = `❌ Failed: ${result.error}`;
+      }
+    }
+  </script>
+</body>
+</html>
