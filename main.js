@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import Lucida from 'lucida';
 import Qobuz from 'lucida/streamers/qobuz/main.js';
 
-// Get __dirname in ES module
+// Get __dirname in an ES module environment
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -26,53 +26,54 @@ app.whenReady().then(createWindow);
 
 ipcMain.handle('download-qobuz', async (event, { url }) => {
   try {
-    // Read ARLs from file
+    // Read tokens (ARLs) from file
     const data = await fs.readFile(path.join(__dirname, 'arls.json'), 'utf8');
-    const arls = JSON.parse(data);
+    const tokens = JSON.parse(data);
     let lastError;
     let successfulAccount;
     let savedFilePath;
 
-    // Cycle through each ARL
-    for (const [name, arl] of Object.entries(arls)) {
+    // Cycle through each token
+    for (const [name, token] of Object.entries(tokens)) {
       try {
-        // Create a Lucida instance with Qobuz configured with the current ARL token
+        // Instantiate a Lucida instance, passing the current token to Qobuz via the constructor
         const lucidaInstance = new Lucida({
           modules: {
             qobuz: new Qobuz({
-              arl: arl
+              token: token // Token passed as option per module's API design
             })
           }
         });
         
-        // Login – using modules which use the tokens configuration
+        // Login. For modules that support tokens through their constructor, this ensures proper setup.
         await lucidaInstance.login();
         
-        // Resolve the track/album from the URL
+        // Resolve the track/album from the URL.
         const track = await lucidaInstance.getByUrl(url);
         
-        // Get the stream data (this example assumes a FLAC file)
+        // Get the stream data (this example assumes a FLAC file).
         const streamData = await track.getStream();
         
-        // Save the file. Here, for simplicity, we save it as "downloaded_file.flac" in the app folder.
+        // Save the file. Here we simply save it as "downloaded_file.flac" in the app folder.
         savedFilePath = path.join(__dirname, 'downloaded_file.flac');
         await fs.writeFile(savedFilePath, streamData.stream);
         
         successfulAccount = name;
         
-        // Disconnect if needed (only necessary for persistent connections)
+        // Disconnect if needed (only necessary for modules that maintain persistent connections)
         if (typeof lucidaInstance.disconnect === 'function') {
           await lucidaInstance.disconnect();
         }
         
-        // Return success result
         return { success: true, account: successfulAccount, path: savedFilePath };
       } catch (err) {
-        // Log error and move on to the next ARL
+        // If the login or download fails for this token, keep the error and try the next token.
         lastError = err;
       }
     }
-    throw lastError || new Error("No valid ARL succeeded");
+    
+    // If none of the tokens succeeded, throw the last encountered error.
+    throw lastError || new Error("No valid token succeeded");
   } catch (err) {
     return { success: false, error: err.message };
   }
